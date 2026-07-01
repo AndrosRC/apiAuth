@@ -1,12 +1,13 @@
 import socket
-# Forzar a socket a usar IPv4 para todas las conexiones futuras
+
+# Corrección en la lógica de forzado a IPv4
 def force_ipv4_socket():
     original_getaddrinfo = socket.getaddrinfo
-    def ipv4_getaddrinfo(*args, **kwargs):
-        if args[1] == socket.AF_INET6:
-            # Si intenta usar IPv6, lo ignoramos o forzamos AF_INET
-            return original_getaddrinfo(args[0], args[1], socket.AF_INET, *args[3:], **kwargs)
-        return original_getaddrinfo(*args, **kwargs)
+    def ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+        # Si la familia es AF_INET6 (valor 10), la forzamos a AF_INET (valor 2)
+        if family == socket.AF_INET6:
+            family = socket.AF_INET
+        return original_getaddrinfo(host, port, family, type, proto, flags)
     socket.getaddrinfo = ipv4_getaddrinfo
 
 force_ipv4_socket()
@@ -15,34 +16,28 @@ import os
 from flask import Flask, Blueprint, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-
-# Importamos la instancia de db desde extensions
 from .extensions import db
-# Importamos las funciones
 from .Functions import generate_secret, update_status, get_all_records, verify_totp, delete_record
 
 load_dotenv()
 
-# Inicialización de la App
 app = Flask(__name__)
 CORS(app)
 
-# Configuración
+# Configuración de base de datos con optimizaciones para Serverless
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 1,
+    "max_overflow": 0,
+    "pool_pre_ping": True,
+    "connect_args": {"connect_timeout": 10}
+}
 
-
-# Inicializamos la base de datos con la app
 db.init_app(app)
 
 # Definición del Blueprint
 api_bp = Blueprint('api', __name__)
-
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 2,
-    "max_overflow": 0,
-    "pool_pre_ping": True
-}
 
 @app.route('/', methods=['GET'])
 def home():
@@ -70,5 +65,4 @@ def handle_verify():
     result = verify_totp(data.get('id'), data.get('pin'))
     return jsonify(result), (200 if result['success'] else 400)
 
-# Registramos el blueprint
 app.register_blueprint(api_bp)
