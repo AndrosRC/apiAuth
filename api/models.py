@@ -1,5 +1,5 @@
-from . import db
-import datetime
+from .extensions import db
+from datetime import datetime, timezone
 
 class AuthRequest(db.Model):
     __tablename__ = 'auth_requests'
@@ -9,4 +9,4 @@ class AuthRequest(db.Model):
     user_email = db.Column(db.String(100), nullable=False)
     secret_key = db.Column(db.String(32), nullable=False)
     status = db.Column(db.String(50), default='Pendiente')
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

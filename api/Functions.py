@@ -1,5 +1,5 @@
 from .models import AuthRequest
-from . import db # Importamos db desde el init local
+from .extensions import db
 import pyotp
 from sqlalchemy import desc
 from datetime import datetime, timedelta

@@ -1,22 +1,25 @@
 import os
 from flask import Flask, Blueprint, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Importamos las funciones desde el archivo Functions.py local
+# Importamos la instancia de db desde extensions
+from .extensions import db
+# Importamos las funciones
 from .Functions import generate_secret, update_status, get_all_records, verify_totp, delete_record
 
 load_dotenv()
 
-# Inicialización
+# Inicialización de la App
 app = Flask(__name__)
 CORS(app)
 
+# Configuración
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# Inicializamos la base de datos con la app
+db.init_app(app)
 
 # Definición del Blueprint
 api_bp = Blueprint('api', __name__)
@@ -43,5 +46,5 @@ def handle_verify():
     result = verify_totp(data.get('id'), data.get('pin'))
     return jsonify(result), (200 if result['success'] else 400)
 
-# Registramos el blueprint en la app
+# Registramos el blueprint
 app.register_blueprint(api_bp)
