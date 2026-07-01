@@ -24,6 +24,16 @@ db.init_app(app)
 # Definición del Blueprint
 api_bp = Blueprint('api', __name__)
 
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 2,
+    "max_overflow": 0,
+    "pool_pre_ping": True
+}
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"message": "API de Autenticacion funcionando correctamente"}), 200
+
 @api_bp.route('/api/request', methods=['POST'])
 def handle_request():
     return jsonify(generate_secret(request.json))
