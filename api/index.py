@@ -18,6 +18,23 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+import socket
+
+# ... en api/index.py ...
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_size": 1,
+    "max_overflow": 0,
+    "pool_pre_ping": True,
+    "connect_args": {
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+        # Esto fuerza al driver a no intentar resoluciones complejas de red
+        "options": "-c statement_timeout=5000" 
+    }
+}
+
 # Inicializamos la base de datos con la app
 db.init_app(app)
 
