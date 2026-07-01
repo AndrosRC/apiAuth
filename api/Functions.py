@@ -25,8 +25,6 @@ def generate_secret(data):
     return {"id": new_req.id, "secret": secret}
 
 def get_all_records():
-    # Limpiamos registros expirados por tiempo antes de retornar la lista
-    cleanup_expired_requests()
     
     reqs = AuthRequest.query.order_by(desc(AuthRequest.created_at)).all()
     return [
