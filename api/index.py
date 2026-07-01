@@ -1,16 +1,18 @@
 import socket
+import os
 
-# Corrección en la lógica de forzado a IPv4
-def force_ipv4_socket():
-    original_getaddrinfo = socket.getaddrinfo
-    def ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
-        # Si la familia es AF_INET6 (valor 10), la forzamos a AF_INET (valor 2)
-        if family == socket.AF_INET6:
-            family = socket.AF_INET
-        return original_getaddrinfo(host, port, family, type, proto, flags)
-    socket.getaddrinfo = ipv4_getaddrinfo
+# Forzar resolución estricta a IPv4 antes de cualquier otra cosa
+def force_ipv4():
+    def getaddrinfo(*args, **kwargs):
+        # Si family es AF_UNSPEC (0) o AF_INET6 (10), forzamos AF_INET (2)
+        if args[2] == 0 or args[2] == socket.AF_INET6:
+            args = list(args)
+            args[2] = socket.AF_INET
+        return socket.getaddrinfo(*args, **kwargs)
+    
+    socket.getaddrinfo = getaddrinfo
 
-force_ipv4_socket()
+force_ipv4()
 
 import os
 from flask import Flask, Blueprint, request, jsonify
