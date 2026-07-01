@@ -4,6 +4,15 @@ import pyotp
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 
+def cleanup_expired_requests():
+    # Revoca automáticamente registros Pendientes con más de 5 minutos de antigüedad
+    expiration_time = datetime.utcnow() - timedelta(minutes=5)
+    AuthRequest.query.filter(
+        AuthRequest.status == 'Pendiente', 
+        AuthRequest.created_at < expiration_time
+    ).update({"status": 'Revocado'})
+    db.session.commit()
+
 def revoke_existing_pending(user_email):
     # Revoca registros Pendientes previos del mismo usuario al crear uno nuevo
     AuthRequest.query.filter_by(user_email=user_email, status='Pendiente')\
@@ -25,6 +34,8 @@ def generate_secret(data):
     return {"id": new_req.id, "secret": secret}
 
 def get_all_records():
+    # Limpiamos registros expirados por tiempo antes de retornar la lista
+    cleanup_expired_requests()
     
     reqs = AuthRequest.query.order_by(desc(AuthRequest.created_at)).all()
     return [

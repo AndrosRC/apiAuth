@@ -1,41 +1,24 @@
-import socket
-import os
-
-# Forzar resolución estricta a IPv4 antes de cualquier otra cosa
-def force_ipv4():
-    def getaddrinfo(*args, **kwargs):
-        # Si family es AF_UNSPEC (0) o AF_INET6 (10), forzamos AF_INET (2)
-        if args[2] == 0 or args[2] == socket.AF_INET6:
-            args = list(args)
-            args[2] = socket.AF_INET
-        return socket.getaddrinfo(*args, **kwargs)
-    
-    socket.getaddrinfo = getaddrinfo
-
-force_ipv4()
-
 import os
 from flask import Flask, Blueprint, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+# Importamos la instancia de db desde extensions
 from .extensions import db
+# Importamos las funciones
 from .Functions import generate_secret, update_status, get_all_records, verify_totp, delete_record
 
 load_dotenv()
 
+# Inicialización de la App
 app = Flask(__name__)
 CORS(app)
 
-# Configuración de base de datos con optimizaciones para Serverless
+# Configuración
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 1,
-    "max_overflow": 0,
-    "pool_pre_ping": True,
-    "connect_args": {"connect_timeout": 10}
-}
 
+# Inicializamos la base de datos con la app
 db.init_app(app)
 
 # Definición del Blueprint
@@ -67,4 +50,5 @@ def handle_verify():
     result = verify_totp(data.get('id'), data.get('pin'))
     return jsonify(result), (200 if result['success'] else 400)
 
+# Registramos el blueprint
 app.register_blueprint(api_bp)
