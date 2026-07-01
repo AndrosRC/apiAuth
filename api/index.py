@@ -1,3 +1,16 @@
+import socket
+# Forzar a socket a usar IPv4 para todas las conexiones futuras
+def force_ipv4_socket():
+    original_getaddrinfo = socket.getaddrinfo
+    def ipv4_getaddrinfo(*args, **kwargs):
+        if args[1] == socket.AF_INET6:
+            # Si intenta usar IPv6, lo ignoramos o forzamos AF_INET
+            return original_getaddrinfo(args[0], args[1], socket.AF_INET, *args[3:], **kwargs)
+        return original_getaddrinfo(*args, **kwargs)
+    socket.getaddrinfo = ipv4_getaddrinfo
+
+force_ipv4_socket()
+
 import os
 from flask import Flask, Blueprint, request, jsonify
 from flask_cors import CORS
@@ -18,22 +31,6 @@ CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-import socket
-
-# ... en api/index.py ...
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    "pool_size": 1,
-    "max_overflow": 0,
-    "pool_pre_ping": True,
-    "connect_args": {
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 10,
-        "keepalives_count": 5,
-        # Esto fuerza al driver a no intentar resoluciones complejas de red
-        "options": "-c statement_timeout=5000" 
-    }
-}
 
 # Inicializamos la base de datos con la app
 db.init_app(app)
